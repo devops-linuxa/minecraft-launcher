@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Пути к директориям
-
 source ./minecraft-installer.sh
 
 MINECRAFT_DIR="$HOME/.minecraft"

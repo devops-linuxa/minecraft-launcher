@@ -11,7 +11,6 @@ THREADS=$(nproc)
 JSON_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/${MINECRAFT_VERSION}.json"
 JAR_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/client.jar"
 VERSION="$MINECRAFT_VERSION"
-CLIENT_JAR=${JAR_FILE}
 
 # Параметры игрока (оффлайн)
 PLAYER_NAME="Marginal"
@@ -181,7 +180,7 @@ while read -r lib_path; do
 done <<< "$LIBS_PATHS"
 
 # Добавляем сам игровой клиент (client.jar)
-CLASSPATH="${CLASSPATH}${CLIENT_JAR}"
+CLASSPATH="${CLASSPATH}${JAR_FILE}"
 
 
 

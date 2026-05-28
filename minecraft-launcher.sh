@@ -2,8 +2,32 @@
 
 set -e
 
-MINECRAFT_VERSION=${1:-"1.21.1"}
-JAVA_VERSION='26'
+MINECRAFT_VERSION=$(
+    whiptail \
+        --title "Minecraft Bash Launcher" \
+        --menu "Выберите версию для игры:" \
+        15 60 4 \
+        "1.21.1" "Стабильная современная" \
+        "1.20.4" "Устойчивая прошлых лет" \
+        "1.16.5" "Для слабых ПК (Nether Update)" \
+        "26.1.2" "Экспериментальная ваниль" \
+    3>&1 1>&2 2>&3
+)
+
+JAVA_VERSION=$(
+    whiptail \
+        --title "Minecraft Bash Launcher" \
+        --menu "Выберите версию JAVA:" \
+        15 60 4 \
+        "17" "java-17-openjdk" \
+        "21" "java-21-openjdk" \
+        "25" "java-25-openjdk" \
+        "26" "java-26-openjdk" \
+    3>&1 1>&2 2>&3
+)
+
+[[ ! $MINECRAFT_VERSION || ! $JAVA_VERSION ]] && exit 123
+
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'

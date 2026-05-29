@@ -61,8 +61,8 @@ JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 THREADS=$(nproc)
-JSON_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/${MINECRAFT_VERSION}.json"
-JAR_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/client.jar"
+JSON_FILE_VANILLA="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/${MINECRAFT_VERSION}.json"
+JAR_FILE_VANILLA="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/client.jar"
 VERSION="$MINECRAFT_VERSION"
 
 mkdir -p ${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/
@@ -101,7 +101,7 @@ if [[ ! $MOJANG_MANIFEST_JSON ]];then
 fi
 echo 'OK'
 
-echo "Получаем данные версии ${MINECRAFT_VERSION}:"
+echo "Получаем данные версии Vanilla ${MINECRAFT_VERSION}:"
 minecraft_version_json_data=$(
     echo ${MOJANG_MANIFEST_JSON} |\
         jq --arg ver "$MINECRAFT_VERSION" \
@@ -123,6 +123,7 @@ echo 'OK'
 
 
 echo "Скачиваем json файл:"
+set -x
 curl -f --progress-bar -o ${JSON_FILE_VANILLA} $json_manifest_url
 if ! file ${JSON_FILE_VANILLA} | grep 'JSON text data' --color >/dev/null 2>&1;then
     echo 'FAILED'
@@ -143,8 +144,8 @@ fi
 echo 'OK'
 
 echo "Скачиваем jar файл (Игровой клиент):"
-curl -f --progress-bar -o ${JAR_FILE} $jar_client_url
-if ! file ${JAR_FILE} | grep '(JAR)' >/dev/null 2>&1;then
+curl -f --progress-bar -o ${JAR_FILE_VANILLA} $jar_client_url
+if ! file ${JAR_FILE_VANILLA} | grep '(JAR)' >/dev/null 2>&1;then
     echo 'FAILED'
     exit 1
 fi
@@ -253,7 +254,7 @@ while read -r lib_path; do
     fi
 done <<< "$LIBS_PATHS"
 
-CLASSPATH="${CLASSPATH}${JAR_FILE}"
+CLASSPATH="${CLASSPATH}${JAR_FILE_VANILLA}"
 
 
 

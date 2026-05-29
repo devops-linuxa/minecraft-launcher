@@ -5,12 +5,12 @@ set -e
 MINECRAFT_VERSION=$(
     whiptail \
         --title "Minecraft Bash Launcher" \
-        --menu "Выберите версию для игры:" \
-        15 60 4 \
-        "1.21.1" "Стабильная современная" \
-        "1.20.4" "Устойчивая прошлых лет" \
-        "1.16.5" "Для слабых ПК (Nether Update)" \
-        "26.1.2" "Экспериментальная ваниль" \
+        --menu "Выберите стабильную версию для игры:" \
+        20 70 11 \
+        "26.1.2"  "Экспериментальная ваниль          [Требует Java 25/26]" \
+        "1.21.11" "Актуальный финал (Tricky Trials)  [Требует Java 21]" \
+        "1.20.6"  "Стабильный финал прошлых лет      [Требует Java 21]" \
+        "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
     3>&1 1>&2 2>&3
 )
 
@@ -18,7 +18,7 @@ JAVA_VERSION=$(
     whiptail \
         --title "Minecraft Bash Launcher" \
         --menu "Выберите версию JAVA:" \
-        15 60 4 \
+        15 70 4 \
         "17" "java-17-openjdk" \
         "21" "java-21-openjdk" \
         "25" "java-25-openjdk" \
@@ -83,73 +83,71 @@ if [[ ! ${minecraft_version_json_data} ]];then
 fi
 echo 'OK'
 
-if ! is_version_installed;then
-    echo "Получаем ссылку для json файла:"
-    json_manifest_url=$(
-        echo "$minecraft_version_json_data" | jq -r .url
-    )
-    if [[ ! $json_manifest_url ]];then
-        echo 'FAILED' && exit 1
-    fi
-    echo 'OK'
-
-
-    echo "Скачиваем json файл:"
-    curl -f --progress-bar -o ${JSON_FILE} $json_manifest_url
-    if ! file ${JSON_FILE} | grep 'JSON text data' --color >/dev/null 2>&1;then
-        echo 'FAILED'
-        rm ${JSON_FILE}
-        exit 1
-    fi
-    echo 'OK'
-
-    echo "Получаем ссылку для jar:"
-    jar_client_url=$(
-        cat ${JSON_FILE} |\
-            jq '.downloads.client' |\
-            jq -r '.url'
-    )
-    if [[ ! $jar_client_url ]];then
-        echo 'FAILED' && exit 1
-    fi
-    echo 'OK'
-
-    echo "Скачиваем jar файл (Игровой клиент):"
-    curl -f --progress-bar -o ${JAR_FILE} $jar_client_url
-    if ! file ${JAR_FILE} | grep '(JAR)' >/dev/null 2>&1;then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
-
-    echo 'Вытаскиваем список библиотек:'
-    libs_list=$(
-        jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE}
-    )
-    if [[ ! $libs_list ]];then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
-
-    echo 'Качаем все библиотеки и генерируем нужные директории:'
-    cd ${MINECRAFT_DIR}/
-    if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
-            "${JSON_FILE}" |\
-            xargs -P "$THREADS" -n 2 bash -c '
-        url="$1"
-        path="libraries/$2"
-        if [ -n "$url" ] && [ ! -f "$path" ]; then
-            mkdir -p "$(dirname "$path")"
-            curl -fL --progress-bar -o "$path" "$url"
-        fi
-    ' _ ;
-    then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
+echo "Получаем ссылку для json файла:"
+json_manifest_url=$(
+    echo "$minecraft_version_json_data" | jq -r .url
+)
+if [[ ! $json_manifest_url ]];then
+    echo 'FAILED' && exit 1
 fi
+echo 'OK'
+
+
+echo "Скачиваем json файл:"
+curl -f --progress-bar -o ${JSON_FILE} $json_manifest_url
+if ! file ${JSON_FILE} | grep 'JSON text data' --color >/dev/null 2>&1;then
+    echo 'FAILED'
+    rm ${JSON_FILE}
+    exit 1
+fi
+echo 'OK'
+
+echo "Получаем ссылку для jar:"
+jar_client_url=$(
+    cat ${JSON_FILE} |\
+        jq '.downloads.client' |\
+        jq -r '.url'
+)
+if [[ ! $jar_client_url ]];then
+    echo 'FAILED' && exit 1
+fi
+echo 'OK'
+
+echo "Скачиваем jar файл (Игровой клиент):"
+curl -f --progress-bar -o ${JAR_FILE} $jar_client_url
+if ! file ${JAR_FILE} | grep '(JAR)' >/dev/null 2>&1;then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
+
+echo 'Вытаскиваем список библиотек:'
+libs_list=$(
+    jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE}
+)
+if [[ ! $libs_list ]];then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
+
+echo 'Качаем все библиотеки и генерируем нужные директории:'
+cd ${MINECRAFT_DIR}/
+if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
+        "${JSON_FILE}" |\
+        xargs -P "$THREADS" -n 2 bash -c '
+    url="$1"
+    path="libraries/$2"
+    if [ -n "$url" ] && [ ! -f "$path" ]; then
+        mkdir -p "$(dirname "$path")"
+        curl -fL --progress-bar -o "$path" "$url"
+    fi
+' _ ;
+then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
 
 echo "Получаем ссылку на assetIndex:"
 asset_index_url=$(
@@ -190,7 +188,30 @@ then
 fi
 echo 'OK'
 
-# Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам
+echo 'Проверяем и скачиваем natives библиотеки для Linux...'
+jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux" | "\(.url)\n\(.path)"' \
+    "${JSON_FILE}" |\
+    xargs -P "$THREADS" -n 2 bash -c '
+    url="$1"
+    path="libraries/$2"
+    if [ -n "$url" ] && [ ! -f "$path" ]; then
+        mkdir -p "$(dirname "$path")"
+        curl -fL --progress-bar -o "$path" "$url"
+    fi
+' _
+
+echo 'Извлекаем .so файлы в директорию natives...'
+jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux".path' "${JSON_FILE}" |\
+    while read -r native_jar; do
+        if [ -f "libraries/$native_jar" ]; then
+            unzip -o \
+                -q "libraries/$native_jar" "*.so" \
+                -d "${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/natives" 2>/dev/null || true
+        fi
+    done
+echo 'OK'
+
+echo 'Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам'
 LIBS_PATHS=$(
     jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' \
     "$JSON_FILE" \

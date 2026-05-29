@@ -2,31 +2,37 @@
 
 set -e
 
-MINECRAFT_VERSION=$(
-    whiptail \
-        --title "Minecraft Bash Launcher" \
-        --menu "Выберите стабильную версию для игры:" \
-        20 70 11 \
-        "26.1.2"  "Экспериментальная ваниль          [Требует Java 25/26]" \
-        "1.21.11" "Актуальный финал (Tricky Trials)  [Требует Java 21]" \
-        "1.20.6"  "Стабильный финал прошлых лет      [Требует Java 21]" \
-        "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
-    3>&1 1>&2 2>&3
-)
+if [[ ! ${1} ]];then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher" \
+            --menu "Выберите стабильную версию для игры:" \
+            20 70 11 \
+            "26.1.2"  "Экспериментальная ваниль          [Требует Java 25/26]" \
+            "1.21.11" "Актуальный финал (Tricky Trials)  [Требует Java 21]" \
+            "1.20.6"  "Стабильный финал прошлых лет      [Требует Java 21]" \
+            "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
+else
+    MINECRAFT_VERSION=${1}
+fi
 
-JAVA_VERSION=$(
-    whiptail \
-        --title "Minecraft Bash Launcher" \
-        --menu "Выберите версию JAVA:" \
-        15 70 4 \
-        "17" "java-17-openjdk" \
-        "21" "java-21-openjdk" \
-        "25" "java-25-openjdk" \
-        "26" "java-26-openjdk" \
-    3>&1 1>&2 2>&3
-)
-
-[[ ! $MINECRAFT_VERSION || ! $JAVA_VERSION ]] && exit 123
+case "$MINECRAFT_VERSION" in
+    "26.1.2")
+        JAVA_VERSION="26"
+        ;;
+    "1.21.11" | "1.20.6")
+        JAVA_VERSION="21"
+        ;;
+    "1.19.4")
+        JAVA_VERSION="17"
+        ;;
+    *)
+        echo "Неизвестная версия Minecraft. Не удалось определить Java."
+        exit 1
+        ;;
+esac
 
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"

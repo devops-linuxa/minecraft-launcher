@@ -42,10 +42,10 @@ case "$MINECRAFT_VERSION" in
     "26.1.2")
         JAVA_VERSION="26"
         ;;
-    "1.21.11" | "1.21.11-fabric" | "1.20.6" | "1.20.6-fabric")
+    "1.21.11" | "1.20.6")
         JAVA_VERSION="21"
         ;;
-    "1.19.4" | "1.19.4-fabric")
+    "1.19.4")
         JAVA_VERSION="17"
         ;;
     *)
@@ -58,9 +58,12 @@ JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 THREADS=$(nproc)
-JSON_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/${MINECRAFT_VERSION}.json"
-JAR_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/client.jar"
+JSON_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/${MINECRAFT_VERSION}.json"
+JAR_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/client.jar"
 VERSION="$MINECRAFT_VERSION"
+
+mkdir -p ${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/
+mkdir -p ${MINECRAFT_DIR}/assets/indexes
 
 # Параметры игрока (оффлайн)
 PLAYER_NAME="Marginal"
@@ -85,9 +88,6 @@ is_version_installed(){
         grep -x $MINECRAFT_VERSION >/dev/null \
         && true || false 
 }
-
-mkdir -p ${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}
-mkdir -p ${MINECRAFT_DIR}/assets/indexes
 
 echo 'Получаем главный Манифест MOJANG:'
 MOJANG_MANIFEST_JSON=$(
@@ -120,17 +120,17 @@ echo 'OK'
 
 
 echo "Скачиваем json файл:"
-curl -f --progress-bar -o ${JSON_FILE} $json_manifest_url
-if ! file ${JSON_FILE} | grep 'JSON text data' --color >/dev/null 2>&1;then
+curl -f --progress-bar -o ${JSON_FILE_VANILLA} $json_manifest_url
+if ! file ${JSON_FILE_VANILLA} | grep 'JSON text data' --color >/dev/null 2>&1;then
     echo 'FAILED'
-    rm ${JSON_FILE}
+    rm ${JSON_FILE_VANILLA}
     exit 1
 fi
 echo 'OK'
 
 echo "Получаем ссылку для jar:"
 jar_client_url=$(
-    cat ${JSON_FILE} |\
+    cat ${JSON_FILE_VANILLA} |\
         jq '.downloads.client' |\
         jq -r '.url'
 )
@@ -149,7 +149,7 @@ echo 'OK'
 
 echo 'Вытаскиваем список библиотек:'
 libs_list=$(
-    jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE}
+    jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE_VANILLA}
 )
 if [[ ! $libs_list ]];then
     echo 'FAILED'
@@ -160,7 +160,7 @@ echo 'OK'
 echo 'Качаем все библиотеки и генерируем нужные директории:'
 cd ${MINECRAFT_DIR}/
 if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
-        "${JSON_FILE}" |\
+        "${JSON_FILE_VANILLA}" |\
         xargs -P "$THREADS" -n 2 bash -c '
     url="$1"
     path="libraries/$2"
@@ -177,7 +177,7 @@ echo 'OK'
 
 echo "Получаем ссылку на assetIndex:"
 asset_index_url=$(
-    jq -r '.assetIndex.url' ${JSON_FILE}
+    jq -r '.assetIndex.url' ${JSON_FILE_VANILLA}
 )
 if [[ ! $asset_index_url ]];then
     echo 'FAILED'
@@ -216,7 +216,7 @@ echo 'OK'
 
 echo 'Проверяем и скачиваем natives библиотеки для Linux...'
 jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux" | "\(.url)\n\(.path)"' \
-    "${JSON_FILE}" |\
+    "${JSON_FILE_VANILLA}" |\
     xargs -P "$THREADS" -n 2 bash -c '
     url="$1"
     path="libraries/$2"
@@ -227,7 +227,7 @@ jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .
 ' _
 
 echo 'Извлекаем .so файлы в директорию natives...'
-jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux".path' "${JSON_FILE}" |\
+jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux".path' "${JSON_FILE_VANILLA}" |\
     while read -r native_jar; do
         if [ -f "libraries/$native_jar" ]; then
             unzip -o \
@@ -240,7 +240,7 @@ echo 'OK'
 echo 'Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам'
 LIBS_PATHS=$(
     jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' \
-    "$JSON_FILE" \
+    "$JSON_FILE_VANILLA" \
 )
 
 CLASSPATH=""

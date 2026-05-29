@@ -123,7 +123,6 @@ echo 'OK'
 
 
 echo "Скачиваем json файл:"
-set -x
 curl -f --progress-bar -o ${JSON_FILE_VANILLA} $json_manifest_url
 if ! file ${JSON_FILE_VANILLA} | grep 'JSON text data' --color >/dev/null 2>&1;then
     echo 'FAILED'

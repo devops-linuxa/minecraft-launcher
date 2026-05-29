@@ -2,8 +2,73 @@
 
 set -e
 
-MINECRAFT_VERSION=${1:-"1.21.1"}
-JAVA_VERSION='26'
+MINECRAFT_CORE=$(
+    whiptail \
+        --title "Minecraft Bash Launcher" \
+        --menu "Выберите тип ядра:" \
+        15 60 3 \
+        "Vanilla" "Чистая официальная версия игры" \
+        "Fabric"  "Оптимизация и современные моды" \
+        "Forge"   "Классические тяжелые модификации" \
+    3>&1 1>&2 2>&3
+)
+
+[[ ! $MINECRAFT_CORE ]] && exit 123
+
+if [[ "$MINECRAFT_CORE" == "Vanilla" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Vanilla]" \
+            --menu "Выберите версию игры:" \
+            20 70 11 \
+            "26.1.2"  "Экспериментальная ваниль          [Требует Java 25/26]" \
+            "1.21.11" "Актуальный финал (Tricky Trials)  [Требует Java 21]" \
+            "1.20.6"  "Стабильный финал прошлых лет      [Требует Java 21]" \
+            "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
+elif [[ "$MINECRAFT_CORE" == "Fabric" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Fabric]" \
+            --menu "Выберите версию с поддержкой Fabric:" \
+            20 70 11 \
+            "1.21.11-fabric" "Актуальный финал + Моды       [Требует Java 21]" \
+            "1.20.6-fabric"  "Стабильная сборка прошлых лет [Требует Java 21]" \
+            "1.19.4-fabric"  "Оптимально для слабых ПК      [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
+elif [[ "$MINECRAFT_CORE" == "Forge" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Forge]" \
+            --menu "Выберите версию с поддержкой Forge:" \
+            20 70 11 \
+            "1.21.11-forge"  "Сборка Tricky Trials + Forge  [Требует Java 21]" \
+            "1.20.6-forge"   "Глобальные моды (Техно/Магия) [Требует Java 21]" \
+            "1.19.4-forge"   "Стабильный мир модификаций    [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
+fi
+
+[[ ! $MINECRAFT_VERSION ]] && exit 123
+
+case "$MINECRAFT_VERSION" in
+    "26.1.2")
+        JAVA_VERSION="26"
+        ;;
+    "1.21.11" | "1.21.11-fabric" | "1.21.11-forge" | "1.20.6" | "1.20.6-fabric" | "1.20.6-forge")
+        JAVA_VERSION="21"
+        ;;
+    "1.19.4" | "1.19.4-fabric" | "1.19.4-forge")
+        JAVA_VERSION="17"
+        ;;
+    *)
+        echo "Неизвестная версия Minecraft. Не удалось определить Java."
+        exit 1
+        ;;
+esac
+
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
@@ -11,7 +76,6 @@ THREADS=$(nproc)
 JSON_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/${MINECRAFT_VERSION}.json"
 JAR_FILE="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/client.jar"
 VERSION="$MINECRAFT_VERSION"
-CLIENT_JAR=${JAR_FILE}
 
 # Параметры игрока (оффлайн)
 PLAYER_NAME="Marginal"
@@ -60,73 +124,71 @@ if [[ ! ${minecraft_version_json_data} ]];then
 fi
 echo 'OK'
 
-if ! is_version_installed;then
-    echo "Получаем ссылку для json файла:"
-    json_manifest_url=$(
-        echo "$minecraft_version_json_data" | jq -r .url
-    )
-    if [[ ! $json_manifest_url ]];then
-        echo 'FAILED' && exit 1
-    fi
-    echo 'OK'
-
-
-    echo "Скачиваем json файл:"
-    curl -f --progress-bar -o ${JSON_FILE} $json_manifest_url
-    if ! file ${JSON_FILE} | grep 'JSON text data' --color >/dev/null 2>&1;then
-        echo 'FAILED'
-        rm ${JSON_FILE}
-        exit 1
-    fi
-    echo 'OK'
-
-    echo "Получаем ссылку для jar:"
-    jar_client_url=$(
-        cat ${JSON_FILE} |\
-            jq '.downloads.client' |\
-            jq -r '.url'
-    )
-    if [[ ! $jar_client_url ]];then
-        echo 'FAILED' && exit 1
-    fi
-    echo 'OK'
-
-    echo "Скачиваем jar файл (Игровой клиент):"
-    curl -f --progress-bar -o ${JAR_FILE} $jar_client_url
-    if ! file ${JAR_FILE} | grep '(JAR)' >/dev/null 2>&1;then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
-
-    echo 'Вытаскиваем список библиотек:'
-    libs_list=$(
-        jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE}
-    )
-    if [[ ! $libs_list ]];then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
-
-    echo 'Качаем все библиотеки и генерируем нужные директории:'
-    cd ${MINECRAFT_DIR}/
-    if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
-            "${JSON_FILE}" |\
-            xargs -P "$THREADS" -n 2 bash -c '
-        url="$1"
-        path="libraries/$2"
-        if [ -n "$url" ] && [ ! -f "$path" ]; then
-            mkdir -p "$(dirname "$path")"
-            curl -fL --progress-bar -o "$path" "$url"
-        fi
-    ' _ ;
-    then
-        echo 'FAILED'
-        exit 1
-    fi
-    echo 'OK'
+echo "Получаем ссылку для json файла:"
+json_manifest_url=$(
+    echo "$minecraft_version_json_data" | jq -r .url
+)
+if [[ ! $json_manifest_url ]];then
+    echo 'FAILED' && exit 1
 fi
+echo 'OK'
+
+
+echo "Скачиваем json файл:"
+curl -f --progress-bar -o ${JSON_FILE} $json_manifest_url
+if ! file ${JSON_FILE} | grep 'JSON text data' --color >/dev/null 2>&1;then
+    echo 'FAILED'
+    rm ${JSON_FILE}
+    exit 1
+fi
+echo 'OK'
+
+echo "Получаем ссылку для jar:"
+jar_client_url=$(
+    cat ${JSON_FILE} |\
+        jq '.downloads.client' |\
+        jq -r '.url'
+)
+if [[ ! $jar_client_url ]];then
+    echo 'FAILED' && exit 1
+fi
+echo 'OK'
+
+echo "Скачиваем jar файл (Игровой клиент):"
+curl -f --progress-bar -o ${JAR_FILE} $jar_client_url
+if ! file ${JAR_FILE} | grep '(JAR)' >/dev/null 2>&1;then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
+
+echo 'Вытаскиваем список библиотек:'
+libs_list=$(
+    jq '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' ${JSON_FILE}
+)
+if [[ ! $libs_list ]];then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
+
+echo 'Качаем все библиотеки и генерируем нужные директории:'
+cd ${MINECRAFT_DIR}/
+if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
+        "${JSON_FILE}" |\
+        xargs -P "$THREADS" -n 2 bash -c '
+    url="$1"
+    path="libraries/$2"
+    if [ -n "$url" ] && [ ! -f "$path" ]; then
+        mkdir -p "$(dirname "$path")"
+        curl -fL --progress-bar -o "$path" "$url"
+    fi
+' _ ;
+then
+    echo 'FAILED'
+    exit 1
+fi
+echo 'OK'
 
 echo "Получаем ссылку на assetIndex:"
 asset_index_url=$(
@@ -167,7 +229,30 @@ then
 fi
 echo 'OK'
 
-# Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам
+echo 'Проверяем и скачиваем natives библиотеки для Linux...'
+jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux" | "\(.url)\n\(.path)"' \
+    "${JSON_FILE}" |\
+    xargs -P "$THREADS" -n 2 bash -c '
+    url="$1"
+    path="libraries/$2"
+    if [ -n "$url" ] && [ ! -f "$path" ]; then
+        mkdir -p "$(dirname "$path")"
+        curl -fL --progress-bar -o "$path" "$url"
+    fi
+' _
+
+echo 'Извлекаем .so файлы в директорию natives...'
+jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux".path' "${JSON_FILE}" |\
+    while read -r native_jar; do
+        if [ -f "libraries/$native_jar" ]; then
+            unzip -o \
+                -q "libraries/$native_jar" "*.so" \
+                -d "${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/natives" 2>/dev/null || true
+        fi
+    done
+echo 'OK'
+
+echo 'Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам'
 LIBS_PATHS=$(
     jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | .path' \
     "$JSON_FILE" \
@@ -180,12 +265,10 @@ while read -r lib_path; do
     fi
 done <<< "$LIBS_PATHS"
 
-# Добавляем сам игровой клиент (client.jar)
-CLASSPATH="${CLASSPATH}${CLIENT_JAR}"
+CLASSPATH="${CLASSPATH}${JAR_FILE}"
 
 
 
-# Запуск игры
 ${JAVA} -Xmx4G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -cp "$CLASSPATH" \

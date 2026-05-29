@@ -12,7 +12,10 @@ MINECRAFT_CORE=$(
     3>&1 1>&2 2>&3
 )
 
-if [[ "$MINECRAFT_CORE" == "Vanilla" ]]; then
+# Lower Case:
+MINECRAFT_CORE="${MINECRAFT_CORE,,}"
+
+if [[ "$MINECRAFT_CORE" == "vanilla" ]]; then
     MINECRAFT_VERSION=$(
         whiptail \
             --title "Minecraft Bash Launcher [Vanilla]" \
@@ -24,7 +27,7 @@ if [[ "$MINECRAFT_CORE" == "Vanilla" ]]; then
             "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
         3>&1 1>&2 2>&3
     )
-elif [[ "$MINECRAFT_CORE" == "Fabric" ]]; then
+elif [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     MINECRAFT_VERSION=$(
         whiptail \
             --title "Minecraft Bash Launcher [Fabric]" \

@@ -61,11 +61,11 @@ JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 THREADS=$(nproc)
-JSON_FILE_VANILLA="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/${MINECRAFT_VERSION}.json"
-JAR_FILE_VANILLA="${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/client.jar"
-VERSION="$MINECRAFT_VERSION"
+VERSION="${MINECRAFT_VERSION}-${MINECRAFT_CORE}"
+JSON_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/${MINECRAFT_VERSION}.json"
+JAR_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/client.jar"
 
-mkdir -p ${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}-${MINECRAFT_CORE}/
+mkdir -p ${MINECRAFT_DIR}/versions/${VERSION}/
 mkdir -p ${MINECRAFT_DIR}/assets/indexes
 
 # Параметры игрока (оффлайн)
@@ -235,7 +235,7 @@ jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .
         if [ -f "libraries/$native_jar" ]; then
             unzip -o \
                 -q "libraries/$native_jar" "*.so" \
-                -d "${MINECRAFT_DIR}/versions/${MINECRAFT_VERSION}/natives" 2>/dev/null || true
+                -d "${MINECRAFT_DIR}/versions/${VERSION}/natives" 2>/dev/null || true
         fi
     done
 echo 'OK'
@@ -262,7 +262,7 @@ ${JAVA} -Xmx4G -XX:+UseG1GC \
     -cp "$CLASSPATH" \
     net.minecraft.client.main.Main \
     --username "$PLAYER_NAME" \
-    --version "$VERSION" \
+    --version "$MINECRAFT_VERSION" \
     --gameDir "$MINECRAFT_DIR" \
     --assetsDir "$MINECRAFT_DIR/assets" \
     --assetIndex "$asset_index" \

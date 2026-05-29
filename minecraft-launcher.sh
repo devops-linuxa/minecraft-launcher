@@ -2,11 +2,24 @@
 
 set -e
 
-if [[ ! ${1} ]];then
+MINECRAFT_CORE=$(
+    whiptail \
+        --title "Minecraft Bash Launcher" \
+        --menu "Выберите тип ядра:" \
+        15 60 3 \
+        "Vanilla" "Чистая официальная версия игры" \
+        "Fabric"  "Оптимизация и современные моды" \
+        "Forge"   "Классические тяжелые модификации" \
+    3>&1 1>&2 2>&3
+)
+
+[[ ! $MINECRAFT_CORE ]] && exit 123
+
+if [[ "$MINECRAFT_CORE" == "Vanilla" ]]; then
     MINECRAFT_VERSION=$(
         whiptail \
-            --title "Minecraft Bash Launcher" \
-            --menu "Выберите стабильную версию для игры:" \
+            --title "Minecraft Bash Launcher [Vanilla]" \
+            --menu "Выберите версию игры:" \
             20 70 11 \
             "26.1.2"  "Экспериментальная ваниль          [Требует Java 25/26]" \
             "1.21.11" "Актуальный финал (Tricky Trials)  [Требует Java 21]" \
@@ -14,18 +27,40 @@ if [[ ! ${1} ]];then
             "1.19.4"  "Идеал для средних ПК (Trails)     [Требует Java 17]" \
         3>&1 1>&2 2>&3
     )
-else
-    MINECRAFT_VERSION=${1}
+elif [[ "$MINECRAFT_CORE" == "Fabric" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Fabric]" \
+            --menu "Выберите версию с поддержкой Fabric:" \
+            20 70 11 \
+            "1.21.11-fabric" "Актуальный финал + Моды       [Требует Java 21]" \
+            "1.20.6-fabric"  "Стабильная сборка прошлых лет [Требует Java 21]" \
+            "1.19.4-fabric"  "Оптимально для слабых ПК      [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
+elif [[ "$MINECRAFT_CORE" == "Forge" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Forge]" \
+            --menu "Выберите версию с поддержкой Forge:" \
+            20 70 11 \
+            "1.21.11-forge"  "Сборка Tricky Trials + Forge  [Требует Java 21]" \
+            "1.20.6-forge"   "Глобальные моды (Техно/Магия) [Требует Java 21]" \
+            "1.19.4-forge"   "Стабильный мир модификаций    [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
 fi
+
+[[ ! $MINECRAFT_VERSION ]] && exit 123
 
 case "$MINECRAFT_VERSION" in
     "26.1.2")
         JAVA_VERSION="26"
         ;;
-    "1.21.11" | "1.20.6")
+    "1.21.11" | "1.21.11-fabric" | "1.21.11-forge" | "1.20.6" | "1.20.6-fabric" | "1.20.6-forge")
         JAVA_VERSION="21"
         ;;
-    "1.19.4")
+    "1.19.4" | "1.19.4-fabric" | "1.19.4-forge")
         JAVA_VERSION="17"
         ;;
     *)
@@ -230,12 +265,10 @@ while read -r lib_path; do
     fi
 done <<< "$LIBS_PATHS"
 
-# Добавляем сам игровой клиент (client.jar)
 CLASSPATH="${CLASSPATH}${JAR_FILE}"
 
 
 
-# Запуск игры
 ${JAVA} -Xmx4G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -cp "$CLASSPATH" \

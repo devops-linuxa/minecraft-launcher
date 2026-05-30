@@ -86,12 +86,6 @@ UUID=$UUID_SUNNY
 
 cd ${MINECRAFT_DIR}
 
-is_version_installed(){
-    ls -1 versions/ |\
-        grep -x $MINECRAFT_VERSION >/dev/null \
-        && true || false 
-}
-
 echo 'Получаем главный Манифест MOJANG:'
 MOJANG_MANIFEST_JSON=$(
     curl -s $MOJANG_MANIFEST_JSON_URL | jq

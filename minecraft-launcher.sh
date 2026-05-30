@@ -109,6 +109,32 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     fi
     echo 'OK'
     CLASSPATH_FABRIC_JAR="${JAR_FILE_FABRIC}"
+    echo "Скачиваем обязательные библиотеки для Fabric Loader..."
+    # Создаем папку для библиотек фабрика, чтобы не путать с ванилой
+    FABRIC_LIBS_DIR="${MINECRAFT_DIR}/libraries/net/fabricmc"
+    mkdir -p "${FABRIC_LIBS_DIR}"
+    # Версии библиотек, которые требует лоадер (стандартный стабильный набор)
+    ASM_VERSION="9.6"
+    # Массив урлов и путей для скачивания
+    declare -A FABRIC_DEPS=(
+        ["https://maven.fabricmc.net/net/fabricmc/intermediary/${MINECRAFT_VERSION}/intermediary-${MINECRAFT_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/net/fabricmc/intermediary/${MINECRAFT_VERSION}/intermediary-${MINECRAFT_VERSION}.jar"
+        ["https://repo1.maven.org/maven2/org/ow2/asm/asm/${ASM_VERSION}/asm-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm/${ASM_VERSION}/asm-${ASM_VERSION}.jar"
+        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/${ASM_VERSION}/asm-analysis-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-analysis/${ASM_VERSION}/asm-analysis-${ASM_VERSION}.jar"
+        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/${ASM_VERSION}/asm-commons-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-commons/${ASM_VERSION}/asm-commons-${ASM_VERSION}.jar"
+        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/${ASM_VERSION}/asm-tree-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-tree/${ASM_VERSION}/asm-tree-${ASM_VERSION}.jar"
+        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-util/${ASM_VERSION}/asm-util-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-util/${ASM_VERSION}/asm-util-${ASM_VERSION}.jar"
+    )
+    # Переменная, где соберем пути к этим либам для будущего CLASSPATH
+    CLASSPATH_FABRIC_LIBS=""
+    for url in "${!FABRIC_DEPS[@]}"; do
+        lib_path="${FABRIC_DEPS[$url]}"
+        if [ ! -f "$lib_path" ]; then
+            mkdir -p "$(dirname "$lib_path")"
+            curl -fL --progress-bar -o "$lib_path" "$url"
+        fi
+        CLASSPATH_FABRIC_LIBS="${CLASSPATH_FABRIC_LIBS}${lib_path}:"
+    done
+    echo 'Библиотеки Fabric OK'
 fi
 
 echo 'Получаем главный Манифест MOJANG:'

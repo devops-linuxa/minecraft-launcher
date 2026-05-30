@@ -319,6 +319,8 @@ fi
 # Пинаем джаву на запуск
 ${JAVA} -Xmx4G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
+    -Dorg.lwjgl.util.NoChecks=false \
+    -Dorg.lwjgl.glfw.build=wayland \
     -cp "$CLASSPATH" \
     "$MAIN_CLASS" \
     --username "$PLAYER_NAME" \

@@ -43,7 +43,7 @@ fi
 
 case "$MINECRAFT_VERSION" in
     "26.1.2")
-        JAVA_VERSION="26"
+        JAVA_VERSION="25"
         ;;
     "1.21.11" | "1.20.6")
         JAVA_VERSION="21"
@@ -88,18 +88,18 @@ cd ${MINECRAFT_DIR}
 
 if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     echo "Получаем данные о Fabric Loader для версии ${MINECRAFT_VERSION}:"
-    # Запрос к API Fabric для поиска последней стабильной версии loader
-    FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}"
+    if [[ "$MINECRAFT_VERSION" == "26.1.2" ]]; then
+        FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}?includeSnapshots=true"
+    else
+        FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}"
+    fi
     FABRIC_DATA=$(curl -s "$FABRIC_API_URL" | jq '.[0]')
     if [[ "$FABRIC_DATA" == "null" || -z "$FABRIC_DATA" ]]; then
         echo "Ошибка: Не удалось найти Fabric Loader для версии ${MINECRAFT_VERSION}."
         exit 1
     fi
-    # Извлекаем версию лоадера и генерируем имя JAR-файла
     FABRIC_LOADER_VERSION=$(echo "$FABRIC_DATA" | jq -r '.loader.version')
     JAR_FILE_FABRIC="${MINECRAFT_DIR}/versions/${VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
-    # Ссылка на скачивание самого JAR
-    # Пример: https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.15.11/fabric-loader-0.15.11.jar
     FABRIC_JAR_URL="https://maven.fabricmc.net/net/fabricmc/fabric-loader/${FABRIC_LOADER_VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
     echo "Скачиваем Fabric Loader JAR (${FABRIC_LOADER_VERSION}):"
     curl -f --progress-bar -o "${JAR_FILE_FABRIC}" "$FABRIC_JAR_URL"
@@ -108,32 +108,37 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
         exit 1
     fi
     echo 'OK'
-    CLASSPATH_FABRIC_JAR="${JAR_FILE_FABRIC}"
-    echo "Скачиваем обязательные библиотеки для Fabric Loader..."
-    # Создаем папку для библиотек фабрика, чтобы не путать с ванилой
-    FABRIC_LIBS_DIR="${MINECRAFT_DIR}/libraries/net/fabricmc"
-    mkdir -p "${FABRIC_LIBS_DIR}"
-    # Версии библиотек, которые требует лоадер (стандартный стабильный набор)
-    ASM_VERSION="9.6"
-    # Массив урлов и путей для скачивания
-    declare -A FABRIC_DEPS=(
-        ["https://maven.fabricmc.net/net/fabricmc/intermediary/${MINECRAFT_VERSION}/intermediary-${MINECRAFT_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/net/fabricmc/intermediary/${MINECRAFT_VERSION}/intermediary-${MINECRAFT_VERSION}.jar"
-        ["https://repo1.maven.org/maven2/org/ow2/asm/asm/${ASM_VERSION}/asm-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm/${ASM_VERSION}/asm-${ASM_VERSION}.jar"
-        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/${ASM_VERSION}/asm-analysis-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-analysis/${ASM_VERSION}/asm-analysis-${ASM_VERSION}.jar"
-        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/${ASM_VERSION}/asm-commons-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-commons/${ASM_VERSION}/asm-commons-${ASM_VERSION}.jar"
-        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/${ASM_VERSION}/asm-tree-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-tree/${ASM_VERSION}/asm-tree-${ASM_VERSION}.jar"
-        ["https://repo1.maven.org/maven2/org/ow2/asm/asm-util/${ASM_VERSION}/asm-util-${ASM_VERSION}.jar"]="${MINECRAFT_DIR}/libraries/org/ow2/asm/asm-util/${ASM_VERSION}/asm-util-${ASM_VERSION}.jar"
-    )
-    # Переменная, где соберем пути к этим либам для будущего CLASSPATH
+    echo "Запрашиваем официальный профиль зависимостей Fabric..."
+    PROFILE_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}/${FABRIC_LOADER_VERSION}/profile/json"
+    PROFILE_JSON=$(curl -s "$PROFILE_URL")
+    if [[ -z "$PROFILE_JSON" || "$PROFILE_JSON" == "null" ]]; then
+        echo "Ошибка получения профиля зависимостей."
+        exit 1
+    fi
+    echo "Скачиваем обязательные библиотеки (ASM, Mixin, Intermediary)..."
     CLASSPATH_FABRIC_LIBS=""
-    for url in "${!FABRIC_DEPS[@]}"; do
-        lib_path="${FABRIC_DEPS[$url]}"
-        if [ ! -f "$lib_path" ]; then
-            mkdir -p "$(dirname "$lib_path")"
-            curl -fL --progress-bar -o "$lib_path" "$url"
+    while read -r name && read -r url; do
+        if [[ -n "$name" && "$name" != "null" ]]; then
+            IFS=':' read -r group artifact version <<< "$name"
+            group_path=$(echo "$group" | tr '.' '/')
+            rel_path="${group_path}/${artifact}/${version}/${artifact}-${version}.jar"
+            full_path="${MINECRAFT_DIR}/libraries/${rel_path}"
+            if [[ -z "$url" || "$url" == "null" ]]; then
+                download_url="https://maven.fabricmc.net/${rel_path}"
+            else
+                [[ "$url" != */ ]] && url="${url}/"
+                download_url="${url}${rel_path}"
+            fi
+            if [ ! -f "$full_path" ]; then
+                mkdir -p "$(dirname "$full_path")"
+                curl -fL --progress-bar -o "$full_path" "$download_url"
+            fi
+            if [[ "$artifact" == "fabric-loader" ]]; then
+                continue
+            fi
+            CLASSPATH_FABRIC_LIBS="${CLASSPATH_FABRIC_LIBS}${full_path}:"
         fi
-        CLASSPATH_FABRIC_LIBS="${CLASSPATH_FABRIC_LIBS}${lib_path}:"
-    done
+    done <<< "$(echo "$PROFILE_JSON" | jq -r '.libraries[] | "\(.name)\n\(.url)"')"
     echo 'Библиотеки Fabric OK'
 fi
 
@@ -298,14 +303,24 @@ while read -r lib_path; do
     fi
 done <<< "$LIBS_PATHS"
 
+# Добавляем в общий CLASSPATH ванильный клиент
 CLASSPATH="${CLASSPATH}${JAR_FILE_VANILLA}"
 
+# Настройки по умолчанию для Ванилы
+MAIN_CLASS="net.minecraft.client.main.Main"
 
+# Если выбран Fabric — перестраиваем класс запуска и дописываем его либы в CLASSPATH
+if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
+    MAIN_CLASS="net.fabricmc.loader.impl.launch.knot.KnotClient"
+    # Добавляем джарник лоадера и его зависимости в самое начало CLASSPATH
+    CLASSPATH="${JAR_FILE_FABRIC}:${CLASSPATH_FABRIC_LIBS}${CLASSPATH}"
+fi
 
+# Пинаем джаву на запуск
 ${JAVA} -Xmx4G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -cp "$CLASSPATH" \
-    net.minecraft.client.main.Main \
+    "$MAIN_CLASS" \
     --username "$PLAYER_NAME" \
     --version "$MINECRAFT_VERSION" \
     --gameDir "$MINECRAFT_DIR" \
@@ -314,4 +329,4 @@ ${JAVA} -Xmx4G -XX:+UseG1GC \
     --uuid "$UUID" \
     --accessToken "$TOKEN" \
     --userType offline \
-    --versionType release
+    --versionType "${MINECRAFT_CORE}"

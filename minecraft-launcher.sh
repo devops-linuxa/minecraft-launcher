@@ -86,6 +86,31 @@ UUID=$UUID_SUNNY
 
 cd ${MINECRAFT_DIR}
 
+if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
+    echo "Получаем данные о Fabric Loader для версии ${MINECRAFT_VERSION}:"
+    # Запрос к API Fabric для поиска последней стабильной версии loader
+    FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}"
+    FABRIC_DATA=$(curl -s "$FABRIC_API_URL" | jq '.[0]')
+    if [[ "$FABRIC_DATA" == "null" || -z "$FABRIC_DATA" ]]; then
+        echo "Ошибка: Не удалось найти Fabric Loader для версии ${MINECRAFT_VERSION}."
+        exit 1
+    fi
+    # Извлекаем версию лоадера и генерируем имя JAR-файла
+    FABRIC_LOADER_VERSION=$(echo "$FABRIC_DATA" | jq -r '.loader.version')
+    JAR_FILE_FABRIC="${MINECRAFT_DIR}/versions/${VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
+    # Ссылка на скачивание самого JAR
+    # Пример: https://maven.fabricmc.net/net/fabricmc/fabric-loader/0.15.11/fabric-loader-0.15.11.jar
+    FABRIC_JAR_URL="https://maven.fabricmc.net/net/fabricmc/fabric-loader/${FABRIC_LOADER_VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
+    echo "Скачиваем Fabric Loader JAR (${FABRIC_LOADER_VERSION}):"
+    curl -f --progress-bar -o "${JAR_FILE_FABRIC}" "$FABRIC_JAR_URL"
+    if [ ! -s "${JAR_FILE_FABRIC}" ]; then
+        echo 'FAILED (Fabric JAR пустой или не скачался)'
+        exit 1
+    fi
+    echo 'OK'
+    CLASSPATH_FABRIC_JAR="${JAR_FILE_FABRIC}"
+fi
+
 echo 'Получаем главный Манифест MOJANG:'
 MOJANG_MANIFEST_JSON=$(
     curl -s $MOJANG_MANIFEST_JSON_URL | jq

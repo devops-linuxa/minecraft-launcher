@@ -103,7 +103,11 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     JAR_FILE_FABRIC="${MINECRAFT_DIR}/versions/${VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
     FABRIC_JAR_URL="https://maven.fabricmc.net/net/fabricmc/fabric-loader/${FABRIC_LOADER_VERSION}/fabric-loader-${FABRIC_LOADER_VERSION}.jar"
     echo "Скачиваем Fabric Loader JAR (${FABRIC_LOADER_VERSION}):"
-    curl -f --progress-bar -o "${JAR_FILE_FABRIC}" "$FABRIC_JAR_URL"
+    if [ ! -s "${JAR_FILE_FABRIC}" ]; then
+        curl -f --progress-bar -o "${JAR_FILE_FABRIC}" "$FABRIC_JAR_URL"
+    else
+        echo "Файл ${JAR_FILE_FABRIC} уже существует, пропускаем..."
+    fi
     if [ ! -s "${JAR_FILE_FABRIC}" ]; then
         echo 'FAILED (Fabric JAR пустой или не скачался)'
         exit 1
@@ -174,7 +178,11 @@ echo 'OK'
 
 
 echo "Скачиваем json файл:"
-curl -f --progress-bar -o ${JSON_FILE_VANILLA} $json_manifest_url
+if [ ! -s "${JSON_FILE_VANILLA}" ]; then
+    curl -f --progress-bar -o ${JSON_FILE_VANILLA} $json_manifest_url
+else
+    echo "Файл ${JSON_FILE_VANILLA} уже существует, пропускаем..."
+fi
 if ! file ${JSON_FILE_VANILLA} | grep 'JSON text data' --color >/dev/null 2>&1;then
     echo 'FAILED'
     rm ${JSON_FILE_VANILLA}
@@ -194,7 +202,11 @@ fi
 echo 'OK'
 
 echo "Скачиваем jar файл (Игровой клиент):"
-curl -f --progress-bar -o ${JAR_FILE_VANILLA} $jar_client_url
+if [ ! -f "${JAR_FILE_VANILLA}" ]; then
+    curl -f --progress-bar -o ${JAR_FILE_VANILLA} $jar_client_url
+else
+    echo "Файл ${JAR_FILE_VANILLA} уже существует, пропускаем..."
+fi
 if ! file ${JAR_FILE_VANILLA} | grep '(JAR)' >/dev/null 2>&1;then
     echo 'FAILED'
     exit 1
@@ -244,9 +256,13 @@ else
 fi
 
 echo 'Скачиваем манифест assets indexes:'
-if ! curl -fL --progress-bar -o assets/indexes/$asset_index_file $asset_index_url;then
-    echo 'FAILED'
-    exit 1
+if [ ! -f "assets/indexes/$asset_index_file" ]; then
+    if ! curl -fL --progress-bar -o assets/indexes/$asset_index_file $asset_index_url;then
+        echo 'FAILED'
+        exit 1
+    fi
+else
+    echo "Манифест ассетов уже существует, пропускаем..."
 fi
 echo 'OK'
 

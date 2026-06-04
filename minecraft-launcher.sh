@@ -61,10 +61,12 @@ esac
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 MINECRAFT_DIR="${HOME}/.minecraft"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
+MOJANG_MANIFEST_JSON_FILE="${MINECRAFT_DIR}/version_manifest_v2.json"
 THREADS=$(nproc)
 VERSION="${MINECRAFT_VERSION}-${MINECRAFT_CORE}"
 JSON_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/${MINECRAFT_VERSION}.json"
 JAR_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/client.jar"
+FABRIC_VERSION_JSON_FILE="${MINECRAFT_DIR}/versions/${VERSION}/fabric_loader_version.json"
 
 mkdir -p ${MINECRAFT_DIR}/versions/${VERSION}/
 mkdir -p ${MINECRAFT_DIR}/assets/indexes
@@ -89,14 +91,20 @@ cd ${MINECRAFT_DIR}
 
 if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     echo "Получаем данные о Fabric Loader для версии ${MINECRAFT_VERSION}:"
-    if [[ "$MINECRAFT_VERSION" == "26.1.2" ]]; then
-        FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}?includeSnapshots=true"
+    if [ ! -s "${FABRIC_VERSION_JSON_FILE}" ]; then
+        if [[ "$MINECRAFT_VERSION" == "26.1.2" ]]; then
+            FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}?includeSnapshots=true"
+        else
+            FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}"
+        fi
+        curl -s "$FABRIC_API_URL" | jq '.[0]' > "${FABRIC_VERSION_JSON_FILE}"
     else
-        FABRIC_API_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}"
+        echo "Файл ${FABRIC_VERSION_JSON_FILE} уже существует, пропускаем..."
     fi
-    FABRIC_DATA=$(curl -s "$FABRIC_API_URL" | jq '.[0]')
+    FABRIC_DATA=$(cat "${FABRIC_VERSION_JSON_FILE}")
     if [[ "$FABRIC_DATA" == "null" || -z "$FABRIC_DATA" ]]; then
         echo "Ошибка: Не удалось найти Fabric Loader для версии ${MINECRAFT_VERSION}."
+        rm -f "${FABRIC_VERSION_JSON_FILE}"
         exit 1
     fi
     FABRIC_LOADER_VERSION=$(echo "$FABRIC_DATA" | jq -r '.loader.version')
@@ -114,10 +122,17 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     fi
     echo 'OK'
     echo "Запрашиваем официальный профиль зависимостей Fabric..."
-    PROFILE_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}/${FABRIC_LOADER_VERSION}/profile/json"
-    PROFILE_JSON=$(curl -s "$PROFILE_URL")
+    FABRIC_PROFILE_JSON_FILE="${MINECRAFT_DIR}/versions/${VERSION}/fabric_profile.json"
+    if [ ! -s "${FABRIC_PROFILE_JSON_FILE}" ]; then
+        PROFILE_URL="https://meta.fabricmc.net/v2/versions/loader/${MINECRAFT_VERSION}/${FABRIC_LOADER_VERSION}/profile/json"
+        curl -s "$PROFILE_URL" > "${FABRIC_PROFILE_JSON_FILE}"
+    else
+        echo "Файл ${FABRIC_PROFILE_JSON_FILE} уже существует, пропускаем..."
+    fi
+    PROFILE_JSON=$(cat "${FABRIC_PROFILE_JSON_FILE}")
     if [[ -z "$PROFILE_JSON" || "$PROFILE_JSON" == "null" ]]; then
         echo "Ошибка получения профиля зависимостей."
+        rm -f "${FABRIC_PROFILE_JSON_FILE}"
         exit 1
     fi
     echo "Скачиваем обязательные библиотеки (ASM, Mixin, Intermediary)..."
@@ -148,9 +163,10 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
 fi
 
 echo 'Получаем главный Манифест MOJANG:'
-MOJANG_MANIFEST_JSON=$(
-    curl -s $MOJANG_MANIFEST_JSON_URL | jq
-)
+if [ ! -s "${MOJANG_MANIFEST_JSON_FILE}" ]; then
+    curl -s $MOJANG_MANIFEST_JSON_URL | jq > "${MOJANG_MANIFEST_JSON_FILE}"
+fi
+MOJANG_MANIFEST_JSON=$(cat "${MOJANG_MANIFEST_JSON_FILE}")
 if [[ ! $MOJANG_MANIFEST_JSON ]];then
     echo 'FAILED' && exit 1
 fi

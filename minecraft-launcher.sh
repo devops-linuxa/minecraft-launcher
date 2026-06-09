@@ -103,6 +103,18 @@ UUID=$UUID_ZURI
 
 cd ${MINECRAFT_DIR}
 
+if [[ "$MINECRAFT_CORE" == "forge" ]]; then
+    FORGE_VERSION="47.3.0" # Для 1.20.1 это актуальная версия
+    FORGE_INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-${FORGE_VERSION}/forge-1.20.1-${FORGE_VERSION}-installer.jar"
+    FORGE_INSTALLER_PATH="${MINECRAFT_DIR}/versions/${VERSION}/forge-installer.jar"
+    echo "Скачиваем Forge Installer..."
+    if [ ! -f "$FORGE_INSTALLER_PATH" ]; then
+        curl -fL --progress-bar -o "$FORGE_INSTALLER_PATH" "$FORGE_INSTALLER_URL"
+    else
+        echo "Установщик Forge уже скачан."
+    fi
+fi
+
 if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     echo "Получаем данные о Fabric Loader для версии ${MINECRAFT_VERSION}:"
     if [ ! -s "${FABRIC_VERSION_JSON_FILE}" ]; then

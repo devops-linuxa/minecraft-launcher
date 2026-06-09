@@ -103,24 +103,6 @@ UUID=$UUID_ZURI
 
 cd ${MINECRAFT_DIR}
 
-if [[ "$MINECRAFT_CORE" == "forge" ]]; then
-    FORGE_VERSION="47.3.0" # Для 1.20.1 это актуальная версия
-    FORGE_INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-${FORGE_VERSION}/forge-1.20.1-${FORGE_VERSION}-installer.jar"
-    FORGE_INSTALLER_PATH="${MINECRAFT_DIR}/versions/${VERSION}/forge-installer.jar"
-    echo "Скачиваем Forge Installer..."
-    if [ ! -f "$FORGE_INSTALLER_PATH" ]; then
-        curl -fL --progress-bar -o "$FORGE_INSTALLER_PATH" "$FORGE_INSTALLER_URL"
-    else
-        echo "Установщик Forge уже скачан."
-    fi
-    echo "Запускаем установку Forge (это может занять время)..."
-        if ! ${JAVA} -jar "$FORGE_INSTALLER_PATH" --installClient; then
-            echo "Ошибка при установке Forge."
-            exit 1
-        fi
-    echo "Установка Forge завершена."
-fi
-
 if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     echo "Получаем данные о Fabric Loader для версии ${MINECRAFT_VERSION}:"
     if [ ! -s "${FABRIC_VERSION_JSON_FILE}" ]; then
@@ -368,6 +350,24 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
     MAIN_CLASS="net.fabricmc.loader.impl.launch.knot.KnotClient"
     # Добавляем джарник лоадера и его зависимости в самое начало CLASSPATH
     CLASSPATH="${JAR_FILE_FABRIC}:${CLASSPATH_FABRIC_LIBS}${CLASSPATH}"
+fi
+
+if [[ "$MINECRAFT_CORE" == "forge" ]]; then
+    FORGE_VERSION="47.3.0" # Для 1.20.1 это актуальная версия
+    FORGE_INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-${FORGE_VERSION}/forge-1.20.1-${FORGE_VERSION}-installer.jar"
+    FORGE_INSTALLER_PATH="${MINECRAFT_DIR}/versions/${VERSION}/forge-installer.jar"
+    echo "Скачиваем Forge Installer..."
+    if [ ! -f "$FORGE_INSTALLER_PATH" ]; then
+        curl -fL --progress-bar -o "$FORGE_INSTALLER_PATH" "$FORGE_INSTALLER_URL"
+    else
+        echo "Установщик Forge уже скачан."
+    fi
+    echo "Запускаем установку Forge (это может занять время)..."
+        if ! ${JAVA} -jar "$FORGE_INSTALLER_PATH" --installClient; then
+            echo "Ошибка при установке Forge."
+            exit 1
+        fi
+    echo "Установка Forge завершена."
 fi
 
 # Пинаем джаву на запуск

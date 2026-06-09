@@ -52,7 +52,7 @@ case "$MINECRAFT_VERSION" in
     "1.21.11" | "1.20.6")
         JAVA_VERSION="21"
         ;;
-    "1.19.4")
+    "1.19.4" | "1.20.1")
         JAVA_VERSION="17"
         ;;
     *)

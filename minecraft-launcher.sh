@@ -353,20 +353,28 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
 fi
 
 if [[ "$MINECRAFT_CORE" == "forge" ]]; then
-    FORGE_VERSION="47.3.0" # Для 1.20.1 это актуальная версия
-    FORGE_INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-${FORGE_VERSION}/forge-1.20.1-${FORGE_VERSION}-installer.jar"
     FORGE_INSTALLER_PATH="${MINECRAFT_DIR}/versions/${VERSION}/forge-installer.jar"
-    echo "Скачиваем Forge Installer..."
+    FORGE_INSTALLER_URL="https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.3.0/forge-1.20.1-47.3.0-installer.jar"
+
     if [ ! -f "$FORGE_INSTALLER_PATH" ]; then
+        echo "Скачиваем установщик Forge..."
+        mkdir -p "${MINECRAFT_DIR}/versions/${VERSION}"
         curl -fL --progress-bar -o "$FORGE_INSTALLER_PATH" "$FORGE_INSTALLER_URL"
-    else
-        echo "Установщик Forge уже скачан."
     fi
-    echo "Запускаем установку Forge (это может занять время)..."
-        if ! ${JAVA} -jar "$FORGE_INSTALLER_PATH" --installClient; then
-            echo "Ошибка при установке Forge."
-            exit 1
-        fi
+
+    echo "Запускаем установку Forge..."
+
+    # Создаем пустой профиль, чтобы обмануть инсталлятор
+    touch "${MINECRAFT_DIR}/launcher_profiles.json"
+
+    cd "${MINECRAFT_DIR}"
+    if ! ${JAVA} -jar "versions/${VERSION}/forge-installer.jar" --installClient; then
+        echo "Ошибка при установке Forge."
+        cd "${THIS_DIR}"
+        exit 1
+    fi
+
+    cd "${THIS_DIR}"
     echo "Установка Forge завершена."
 fi
 

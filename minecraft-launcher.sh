@@ -45,6 +45,15 @@ elif [[ "$MINECRAFT_CORE" == "fabric" ]]; then
             "1.19.4"  "Идеал для средних ПК (Trails)    [Требует Java 17]" \
         3>&1 1>&2 2>&3
     )
+elif [[ "$MINECRAFT_CORE" == "forge" ]]; then
+    MINECRAFT_VERSION=$(
+        whiptail \
+            --title "Minecraft Bash Launcher [Forge]" \
+            --menu "Выберите версию с поддержкой Forge:" \
+            20 70 11 \
+            "1.20.1"  "Стабильный финал прошлых лет     [Требует Java 17]" \
+        3>&1 1>&2 2>&3
+    )
 fi
 
 case "$MINECRAFT_VERSION" in

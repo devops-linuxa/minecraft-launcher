@@ -2,6 +2,9 @@
 
 set -e
 
+THIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${THIS_DIR}"
+
 MINECRAFT_CORE=$(
     whiptail \
         --title "Minecraft Bash Launcher" \

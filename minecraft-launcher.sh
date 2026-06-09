@@ -184,7 +184,6 @@ MOJANG_MANIFEST_JSON=$(cat "${MOJANG_MANIFEST_JSON_FILE}")
 if [[ ! $MOJANG_MANIFEST_JSON ]];then
     echo 'FAILED' && exit 1
 fi
-echo 'OK'
 
 echo "Получаем данные версии Vanilla ${MINECRAFT_VERSION}:"
 minecraft_version_json_data=$(
@@ -195,7 +194,6 @@ minecraft_version_json_data=$(
 if [[ ! ${minecraft_version_json_data} ]];then
     echo 'FAILED' && exit 1
 fi
-echo 'OK'
 
 echo "Получаем ссылку для json файла:"
 json_manifest_url=$(
@@ -204,7 +202,6 @@ json_manifest_url=$(
 if [[ ! $json_manifest_url ]];then
     echo 'FAILED' && exit 1
 fi
-echo 'OK'
 
 
 echo "Скачиваем json файл:"
@@ -218,7 +215,6 @@ if ! file ${JSON_FILE_VANILLA} | grep 'JSON text data' --color >/dev/null 2>&1;t
     rm ${JSON_FILE_VANILLA}
     exit 1
 fi
-echo 'OK'
 
 echo "Получаем ссылку для jar:"
 jar_client_url=$(
@@ -229,7 +225,6 @@ jar_client_url=$(
 if [[ ! $jar_client_url ]];then
     echo 'FAILED' && exit 1
 fi
-echo 'OK'
 
 echo "Скачиваем jar файл (Игровой клиент):"
 if [ ! -f "${JAR_FILE_VANILLA}" ]; then
@@ -241,7 +236,6 @@ if ! file ${JAR_FILE_VANILLA} | grep '(JAR)' >/dev/null 2>&1;then
     echo 'FAILED'
     exit 1
 fi
-echo 'OK'
 
 echo 'Вытаскиваем список библиотек:'
 libs_list=$(
@@ -251,7 +245,6 @@ if [[ ! $libs_list ]];then
     echo 'FAILED'
     exit 1
 fi
-echo 'OK'
 
 echo 'Качаем все библиотеки и генерируем нужные директории:'
 cd ${MINECRAFT_DIR}/
@@ -269,7 +262,6 @@ then
     echo 'FAILED'
     exit 1
 fi
-echo 'OK'
 
 echo "Получаем ссылку на assetIndex:"
 asset_index_url=$(
@@ -294,7 +286,6 @@ if [ ! -f "assets/indexes/$asset_index_file" ]; then
 else
     echo "Манифест ассетов уже существует, пропускаем..."
 fi
-echo 'OK'
 
 echo 'Выкачиваем все ассеты (самый долгий пункт):'
 if ! jq -r '.objects[].hash' assets/indexes/$(basename $asset_index_url) |\
@@ -312,7 +303,6 @@ then
     echo 'FAILED'
     exit 1
 fi
-echo 'OK'
 
 echo 'Проверяем и скачиваем natives библиотеки для Linux...'
 jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .downloads.classifiers."natives-linux" | "\(.url)\n\(.path)"' \
@@ -335,7 +325,6 @@ jq -r '.libraries[] | select(.downloads.classifiers."natives-linux" != null) | .
                 -d "${MINECRAFT_DIR}/versions/${VERSION}/natives" 2>/dev/null || true
         fi
     done
-echo 'OK'
 
 echo 'Читаем JSON-файл запущенной версии и собираем пути только к её родным библиотекам'
 LIBS_PATHS=$(

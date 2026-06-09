@@ -113,6 +113,12 @@ if [[ "$MINECRAFT_CORE" == "forge" ]]; then
     else
         echo "Установщик Forge уже скачан."
     fi
+    echo "Запускаем установку Forge (это может занять время)..."
+        if ! ${JAVA} -jar "$FORGE_INSTALLER_PATH" --installClient; then
+            echo "Ошибка при установке Forge."
+            exit 1
+        fi
+    echo "Установка Forge завершена."
 fi
 
 if [[ "$MINECRAFT_CORE" == "fabric" ]]; then

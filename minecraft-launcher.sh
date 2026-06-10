@@ -134,7 +134,6 @@ if [[ "$MINECRAFT_CORE" == "fabric" ]]; then
         echo 'FAILED (Fabric JAR пустой или не скачался)'
         exit 1
     fi
-    echo 'OK'
     echo "Запрашиваем официальный профиль зависимостей Fabric..."
     FABRIC_PROFILE_JSON_FILE="${MINECRAFT_DIR}/versions/${VERSION}/fabric_profile.json"
     if [ ! -s "${FABRIC_PROFILE_JSON_FILE}" ]; then
@@ -274,7 +273,6 @@ else
     asset_index_file=$(basename $asset_index_url)
     asset_index=$(echo $asset_index_file | awk -F"." '{print $1}')
     echo "asset_index: $asset_index"
-    echo 'OK'
 fi
 
 echo 'Скачиваем манифест assets indexes:'

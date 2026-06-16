@@ -104,13 +104,13 @@ mkdir -p ${MINECRAFT_DIR}/versions/${VERSION}/
 mkdir -p ${MINECRAFT_DIR}/assets/indexes
 
 if [[ "${MINECRAFT_CORE}" == "vanilla" ]];then
-    ${MINECRAFT_DIR}/launcher-cores/vanilla.sh
+    source ${MINECRAFT_DIR}/launcher-cores/vanilla.sh
 fi
 
 if [[ "${MINECRAFT_CORE}" == "fabric" ]];then
-    ${MINECRAFT_DIR}/launcher-cores/fabric.sh
+    source ${MINECRAFT_DIR}/launcher-cores/fabric.sh
 fi
 
 if [[ "${MINECRAFT_CORE}" == "forge" ]];then
-    ${MINECRAFT_DIR}/launcher-cores/forge.sh
+    source ${MINECRAFT_DIR}/launcher-cores/forge.sh
 fi

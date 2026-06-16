@@ -1,13 +1,10 @@
 #!/bin/bash
 
-set -e
-
-echo "MINECRAFT_DIR = $MINECRAFT_DIR"
-exit 0
 echo 'Получаем главный Манифест MOJANG:'
 if [ ! -s "${MOJANG_MANIFEST_JSON_FILE}" ]; then
     curl -s $MOJANG_MANIFEST_JSON_URL | jq > "${MOJANG_MANIFEST_JSON_FILE}"
 fi
+
 MOJANG_MANIFEST_JSON=$(cat "${MOJANG_MANIFEST_JSON_FILE}")
 if [[ ! $MOJANG_MANIFEST_JSON ]];then
     echo 'FAILED' && exit 1
@@ -30,7 +27,6 @@ json_manifest_url=$(
 if [[ ! $json_manifest_url ]];then
     echo 'FAILED' && exit 1
 fi
-
 
 echo "Скачиваем json файл:"
 if [ ! -s "${JSON_FILE_VANILLA}" ]; then
@@ -75,7 +71,7 @@ if [[ ! $libs_list ]];then
 fi
 
 echo 'Качаем все библиотеки и генерируем нужные директории:'
-cd ${MINECRAFT_DIR}/
+
 if ! jq -r '.libraries[].downloads.artifact | select(.path | contains("linux") or (contains("natives") | not)) | "\(.url)\n\(.path)"' \
         "${JSON_FILE_VANILLA}" |\
         xargs -P "$THREADS" -n 2 bash -c '
@@ -165,15 +161,11 @@ while read -r lib_path; do
         CLASSPATH="${CLASSPATH}${MINECRAFT_DIR}/libraries/${lib_path}:"
     fi
 done <<< "$LIBS_PATHS"
-
-# Добавляем в общий CLASSPATH ванильный клиент
 CLASSPATH="${CLASSPATH}${JAR_FILE_VANILLA}"
 
-# Настройки по умолчанию для Ванилы
 MAIN_CLASS="net.minecraft.client.main.Main"
 
 
-# Пинаем джаву на запуск
 ${JAVA} -Xmx4G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -Dorg.lwjgl.util.NoChecks=false \

@@ -74,6 +74,7 @@ esac
 
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 export MINECRAFT_DIR="${HOME}/.minecraft"
+export CORES_DIR="${MINECRAFT_DIR}/launcher-cores"
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 MOJANG_MANIFEST_JSON_FILE="${MINECRAFT_DIR}/version_manifest_v2.json"
 THREADS=$(nproc)
@@ -103,14 +104,15 @@ cd ${MINECRAFT_DIR}
 mkdir -p ${MINECRAFT_DIR}/versions/${VERSION}/
 mkdir -p ${MINECRAFT_DIR}/assets/indexes
 
+
 if [[ "${MINECRAFT_CORE}" == "vanilla" ]];then
-    source ${MINECRAFT_DIR}/launcher-cores/vanilla.sh
+    source ${CORES_DIR}/vanilla.sh
 fi
 
 if [[ "${MINECRAFT_CORE}" == "fabric" ]];then
-    source ${MINECRAFT_DIR}/launcher-cores/fabric.sh
+    source ${CORES_DIR}/fabric.sh
 fi
 
 if [[ "${MINECRAFT_CORE}" == "forge" ]];then
-    source ${MINECRAFT_DIR}/launcher-cores/forge.sh
+    source ${CORES_DIR}/forge.sh
 fi

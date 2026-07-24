@@ -241,7 +241,7 @@ MAIN_CLASS="net.fabricmc.loader.impl.launch.knot.KnotClient"
 CLASSPATH="${JAR_FILE_FABRIC}:${CLASSPATH_FABRIC_LIBS}${CLASSPATH}"
 
 # Пинаем джаву на запуск
-${JAVA} -Xmx4G -XX:+UseG1GC \
+${JAVA} -Xmx6G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -Dorg.lwjgl.util.NoChecks=false \
     -Dorg.lwjgl.glfw.build=wayland \

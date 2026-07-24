@@ -72,6 +72,9 @@ case "$MINECRAFT_VERSION" in
         ;;
 esac
 
+rm mods/*.jar || true
+cp mods/${MINECRAFT_VERSION}/*.jar mods/ || true
+
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 export MINECRAFT_DIR="${HOME}/.minecraft"
 export CORES_DIR="${MINECRAFT_DIR}/launcher-cores"

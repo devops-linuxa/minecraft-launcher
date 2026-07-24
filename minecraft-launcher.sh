@@ -72,12 +72,10 @@ case "$MINECRAFT_VERSION" in
         ;;
 esac
 
-rm mods/*.jar || true
-cp mods/${MINECRAFT_VERSION}/*.jar mods/ || true
-
 JAVA="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
 export MINECRAFT_DIR="${HOME}/.minecraft"
 export CORES_DIR="${MINECRAFT_DIR}/launcher-cores"
+export MODS_DIR=${MINECRAFT_DIR}/mods
 MOJANG_MANIFEST_JSON_URL='https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
 MOJANG_MANIFEST_JSON_FILE="${MINECRAFT_DIR}/version_manifest_v2.json"
 THREADS=$(nproc)
@@ -85,6 +83,11 @@ VERSION="${MINECRAFT_VERSION}-${MINECRAFT_CORE}"
 JSON_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/${MINECRAFT_VERSION}.json"
 JAR_FILE_VANILLA="${MINECRAFT_DIR}/versions/${VERSION}/client.jar"
 FABRIC_VERSION_JSON_FILE="${MINECRAFT_DIR}/versions/${VERSION}/fabric_loader_version.json"
+
+# Пересборка модов для версий:
+mkdir ${MODS_DIR} || true
+rm ${MODS_DIR}/*.jar || true
+cp ${MODS_DIR}/${MINECRAFT_VERSION}/*.jar mods/ || true
 
 # Параметры игрока (оффлайн)
 PLAYER_NAME="Marginal"

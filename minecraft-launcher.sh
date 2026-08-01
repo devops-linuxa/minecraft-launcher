@@ -91,7 +91,7 @@ cp ${MODS_DIR}/${MINECRAFT_VERSION}/*.jar mods/ || true
 
 # Параметры игрока (оффлайн)
 PLAYER_NAME="Marginal"
-TOKEN="0"
+TOKEN="11"
 
 UUID_STEVE="00000000-0000-0000-0000-000000000006"   # Стив из Волк из волкстрита
 UUID_ALEX="00000000-0000-0000-0000-000000000000"    # Девка Светлая

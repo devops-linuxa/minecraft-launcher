@@ -245,6 +245,7 @@ ${JAVA} -Xmx6G -XX:+UseG1GC \
     -Djava.library.path="$MINECRAFT_DIR/versions/$VERSION/natives" \
     -Dorg.lwjgl.util.NoChecks=false \
     -Dorg.lwjgl.glfw.build=wayland \
+    -Djava.net.preferIPv4Stack=true \
     -cp "$CLASSPATH" \
     "$MAIN_CLASS" \
     --username "$PLAYER_NAME" \
